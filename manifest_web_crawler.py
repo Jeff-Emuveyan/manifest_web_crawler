@@ -8,7 +8,7 @@ def clean_url(url):
 def main():
     page_number = input("Enter page number: ").strip()
 
-    url = f"https://themanifest.com/ua/software-development/companies?page={page_number}"
+    url = f"https://themanifest.com/nl/software-development/companies?page={page_number}"
 
     with sync_playwright() as p:
 
