@@ -11,13 +11,9 @@ def crawl_page(browser, page_number):
     url = f"https://themanifest.com/nl/software-development/companies?page={page_number}"
 
     page = browser.new_page()
-
-    print(f"\nLoading page {page_number}...")
     page.goto(url, wait_until="networkidle")
 
     buttons = page.get_by_text("Visit Site")
-
-    print(f"Found {buttons.count()} companies.\n")
 
     websites = set()
 
@@ -29,8 +25,6 @@ def crawl_page(browser, page_number):
         if not redirect_url:
             continue
 
-        print(f"Checking company {i + 1}...")
-
         company_page = browser.new_page()
 
         try:
@@ -40,31 +34,19 @@ def crawl_page(browser, page_number):
                 timeout=30000
             )
 
-            # Wait a little for redirects to finish
             company_page.wait_for_timeout(3000)
 
-            final_url = company_page.url
-            websites.add(clean_url(final_url))
+            websites.add(clean_url(company_page.url))
 
-        except Exception as e:
-            print(f"Failed: {e}")
+        except Exception:
+            pass
 
         finally:
             company_page.close()
 
     page.close()
 
-    print("\n==============================")
-    print(f"Company Websites (Page {page_number})")
-    print("==============================\n")
-
-    for index, website in enumerate(sorted(websites), start=1):
-        print(f"{index}. {website}")
-
-    print(f"\nFound {len(websites)} unique websites on page {page_number}.")
-
-    # Three blank lines for readability
-    print("\n\n\n")
+    return sorted(websites)
 
 
 def main():
@@ -75,13 +57,38 @@ def main():
         print("Start page cannot be greater than end page.")
         return
 
+    page_results = {}
+    page_counts = {}
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
 
         for page_number in range(start_page, end_page + 1):
-            crawl_page(browser, page_number)
+            websites = crawl_page(browser, page_number)
+            page_results[page_number] = websites
+            page_counts[page_number] = len(websites)
 
         browser.close()
+
+    # Print all website URLs after crawling has completed
+    for page_number in range(start_page, end_page + 1):
+        for website in page_results[page_number]:
+            print(website)
+
+        # Three blank lines
+        print("\n\n\n", end="")
+
+    # Summary report
+    print("========== Crawl Report ==========")
+    print(f"Start Page : {start_page}")
+    print(f"End Page   : {end_page}")
+    print()
+
+    for page_number in range(start_page, end_page + 1):
+        print(f"Page {page_number}: {page_counts[page_number]} website(s)")
+
+    print()
+    print(f"Total Pages Crawled: {end_page - start_page + 1}")
 
 
 if __name__ == "__main__":
